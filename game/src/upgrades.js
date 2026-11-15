@@ -1,12 +1,13 @@
-// The level-up choices: eight upgrades, each with a short name, a line of
-// flavour and the effect it applies to the player. A card can be taken at
-// most three times; the roll never offers a maxed-out upgrade.
+// The level-up choices: twelve upgrades, each with a short name, a line
+// of flavour and the effect it applies to the player. A card can be taken
+// at most three or four times; the roll never offers a maxed-out upgrade.
+// Four of them feed Echoloop's own systems: rust, breaking and the rewind.
 export const UPGRADES = [
   {
     id: 'split',
-    name: 'Ember Split',
+    name: 'Split Gear',
     icon: '✦',
-    text: '+1 ember bolt per volley',
+    text: '+1 gear bolt per volley',
     max: 3,
     apply(p) {
       p.projectiles += 1;
@@ -14,9 +15,9 @@ export const UPGRADES = [
   },
   {
     id: 'rapid',
-    name: 'Rapid Wick',
+    name: 'Quick Escapement',
     icon: '≫',
-    text: 'Lantern fires 18% faster',
+    text: 'The clockkeeper fires 18% faster',
     max: 4,
     apply(p) {
       p.fireInterval *= 0.82;
@@ -24,7 +25,7 @@ export const UPGRADES = [
   },
   {
     id: 'heavy',
-    name: 'Heavy Ember',
+    name: 'Heavy Hammer',
     icon: '●',
     text: 'Bolts deal 30% more damage',
     max: 4,
@@ -34,7 +35,7 @@ export const UPGRADES = [
   },
   {
     id: 'boots',
-    name: 'Swift Boots',
+    name: 'Oiled Joints',
     icon: '»',
     text: 'Move 12% faster',
     max: 4,
@@ -44,9 +45,9 @@ export const UPGRADES = [
   },
   {
     id: 'magnet',
-    name: 'Magnet Glow',
+    name: 'Magnet Coil',
     icon: '◎',
-    text: 'Ember shards fly to you from 45% farther',
+    text: 'Cogs fly to you from 45% farther',
     max: 3,
     apply(p) {
       p.pickupRadius *= 1.45;
@@ -54,7 +55,7 @@ export const UPGRADES = [
   },
   {
     id: 'heart',
-    name: 'Lantern Heart',
+    name: 'Mainspring Heart',
     icon: '♥',
     text: '+25 max health and mend 25 now',
     max: 4,
@@ -64,24 +65,65 @@ export const UPGRADES = [
     },
   },
   {
-    id: 'dash',
-    name: 'Dash Charm',
+    id: 'rewind',
+    name: 'Rewind Charm',
     icon: '↯',
-    text: 'Dash recharges 30% faster, dashing burns foes',
+    text: '+1 rewind charge held, and refill one now',
     max: 3,
     apply(p) {
-      p.dashCooldown *= 0.7;
-      p.dashDamage += 12;
+      p.rewindMax += 1;
+      p.rewindCharges = Math.min(p.rewindMax, p.rewindCharges + 1);
     },
   },
   {
     id: 'pierce',
-    name: 'Piercing Flame',
+    name: 'Piercing Pinion',
     icon: '→',
     text: 'Bolts pierce through +1 foe',
     max: 3,
     apply(p) {
       p.pierce += 1;
+    },
+  },
+  {
+    id: 'deeprust',
+    name: 'Deep Rust',
+    icon: '❋',
+    text: 'Each bolt stacks +1 rust — foes seize twice as fast',
+    max: 2,
+    apply(p) {
+      p.rustPerHit += 1;
+    },
+  },
+  {
+    id: 'breaker',
+    name: 'Breaker',
+    icon: '✧',
+    text: 'Seized foes take +50% damage from your bolts',
+    max: 3,
+    apply(p) {
+      p.breakBonus += 0.5;
+    },
+  },
+  {
+    id: 'combo',
+    name: 'Combo Master',
+    icon: '×',
+    text: 'The combo window lasts +1 second',
+    max: 3,
+    apply(p) {
+      p.comboBonus += 1;
+    },
+  },
+  {
+    id: 'paradox',
+    name: 'Paradox Shield',
+    icon: '◐',
+    text: 'Mend 15 now, and +5 more mending each wave clear',
+    max: 2,
+    apply(p) {
+      p.hp = Math.min(p.maxHp, p.hp + 15);
+      p.maxHp += 10;
     },
   },
 ];

@@ -1,14 +1,16 @@
 // Keyboard and mouse, read as one bitmask of actions per frame.
-// Movement is WASD or arrows; Space dashes; P or Escape pauses; R restarts;
+// Movement is WASD or arrows; Space rewinds; P or Escape pauses; R restarts;
 // M mutes; 1/2/3 pick a level-up card; click fires a burst toward the mouse.
 export const ACTION_CONFIRM = 1;
 export const ACTION_PAUSE = 2;
 export const ACTION_RESTART = 4;
 export const ACTION_MUTE = 8;
-export const ACTION_DASH = 16;
+export const ACTION_REWIND = 16;
 export const ACTION_PICK_1 = 32;
 export const ACTION_PICK_2 = 64;
 export const ACTION_PICK_3 = 128;
+export const ACTION_REROLL = 256;
+export const ACTION_SAME_SEED = 512;
 
 const KEY_ACTIONS = {
   Space: ACTION_CONFIRM,
@@ -17,6 +19,8 @@ const KEY_ACTIONS = {
   Escape: ACTION_PAUSE,
   KeyR: ACTION_RESTART,
   KeyM: ACTION_MUTE,
+  KeyF: ACTION_REROLL,
+  KeyS: ACTION_SAME_SEED,
   Digit1: ACTION_PICK_1,
   Digit2: ACTION_PICK_2,
   Digit3: ACTION_PICK_3,
@@ -45,7 +49,7 @@ export function createInput(canvas) {
     keys.add(event.code);
     const action = KEY_ACTIONS[event.code];
     if (action) actions |= action;
-    if (event.code === 'Space') actions |= ACTION_DASH;
+    if (event.code === 'Space') actions |= ACTION_REWIND;
   });
   window.addEventListener('keyup', (event) => keys.delete(event.code));
   window.addEventListener('blur', () => keys.clear());

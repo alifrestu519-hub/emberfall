@@ -9,9 +9,9 @@ export function createAudio() {
   let musicTimer = null;
   let musicStep = 0;
 
-  /** A tiny pentatonic lantern theme, one quiet note per beat. */
-  const MELODY = [392, 0, 494, 587, 0, 494, 392, 330, 0, 392, 440, 494, 0, 587, 659, 0];
-  const BASS = [131, 0, 0, 165, 0, 0, 196, 0, 0, 0, 165, 0, 147, 0, 0, 0];
+  /** A clockwork waltz in three: brass bells over a ticking bass. */
+  const MELODY = [523, 0, 659, 784, 0, 659, 587, 0, 523, 440, 0, 587, 659, 0, 784, 0];
+  const BASS = [131, 0, 0, 165, 0, 0, 147, 0, 0, 131, 0, 0, 175, 0, 0, 0];
 
   function ensure() {
     if (ctx) return true;
@@ -100,7 +100,7 @@ export function createAudio() {
       return muted;
     },
     shoot() {
-      tone(760, 0.09, 'square', 0.1, 0, 320);
+      tone(880, 0.08, 'square', 0.08, 0, 440);
     },
     burst() {
       tone(520, 0.12, 'square', 0.14, 0, 180);
@@ -123,8 +123,18 @@ export function createAudio() {
     levelUp() {
       [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.14, i * 0.07));
     },
-    dash() {
-      noise(0.16, 0.14, 3200);
+    rewind() {
+      // Time running backwards: a falling chime.
+      tone(1047, 0.25, 'sine', 0.14, 0, 262);
+      tone(784, 0.2, 'sine', 0.1, 0.05, 392);
+    },
+    echo() {
+      tone(1319, 0.3, 'sine', 0.12);
+      tone(1760, 0.4, 'sine', 0.08, 0.12);
+    },
+    timestop() {
+      tone(1568, 0.5, 'sine', 0.14, 0, 1568);
+      tone(2093, 0.5, 'sine', 0.1, 0.08, 2093);
     },
     wave() {
       tone(392, 0.16, 'triangle', 0.14);
@@ -133,6 +143,22 @@ export function createAudio() {
     boss() {
       tone(98, 0.7, 'sawtooth', 0.22, 0, 49);
       tone(147, 0.5, 'sawtooth', 0.14, 0.1, 73);
+    },
+    seize() {
+      tone(1175, 0.18, 'sine', 0.12, 0, 880);
+      tone(880, 0.12, 'sine', 0.08, 0.06);
+    },
+    break() {
+      noise(0.14, 0.16, 5200);
+      tone(1318, 0.1, 'triangle', 0.1, 0, 880);
+    },
+    chime() {
+      // The Great Chime: twelve slow bell strikes in miniature.
+      [784, 784, 784].forEach((f, i) => tone(f, 0.5, 'sine', 0.12, i * 0.3));
+    },
+    chimeWarn() {
+      tone(660, 0.3, 'sine', 0.12, 0, 440);
+      tone(660, 0.3, 'sine', 0.12, 0.35, 440);
     },
     victory() {
       [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.3, 'triangle', 0.15, i * 0.11));

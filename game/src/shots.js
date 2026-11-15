@@ -1,7 +1,7 @@
 // The deterministic screenshot scenes behind ?shot=start|play|levelup|end.
 // Each one plays the real rules forward from a fresh world for a fixed
 // number of steps, steered by a simple autopilot (kite away from the nearest
-// foe, drift toward the nearest shard, dash when surrounded), so the frame
+// foe, drift toward the nearest cog, rewind when surrounded), so the frame
 // is what a short game really looks like and the same seed always gives
 // the same frame.
 import { FIELD, STEP } from './config.js';
@@ -9,7 +9,7 @@ import { EVENT_LEVEL, EVENT_OVER, EVENT_WIN } from './world.js';
 import { SCREEN_LEVEL, SCREEN_OVER, SCREEN_PLAY, SCREEN_TITLE, SCREEN_VICTORY } from './render.js';
 
 const START_SECONDS = 6;
-const PLAY_SECONDS = 45;
+const PLAY_SECONDS = 70;
 const LEVELUP_SECONDS = 150;
 const END_LIMIT_SECONDS = 600;
 const SAMPLE = 1 / 30;
@@ -74,9 +74,9 @@ function autopilotMove(state) {
   return { x: mx / len, y: my / len };
 }
 
-function autopilotDash(state) {
+function autopilotRewind(state) {
   const p = state.player;
-  if (p.dashTimer > 0) return false;
+  if (p.rewindCharges <= 0) return false;
   let close = 0;
   for (const e of state.enemies) {
     if (!e.active) continue;
@@ -89,8 +89,8 @@ function autopilotDash(state) {
 
 function stepWorld(world, dt, events) {
   const move = autopilotMove(world.state);
-  const dash = autopilotDash(world.state);
-  return world.step(dt, move, null, dash, events);
+  const rewind = autopilotRewind(world.state);
+  return world.step(dt, move, null, rewind, events);
 }
 
 /**
@@ -129,8 +129,8 @@ export function stageShot(name, world) {
   }
   if (!ended && name === 'end') {
     // The pilot survived the whole limit: play recklessly (walk into the
-    // nearest foe, never dash) until the dark takes it, so the shot still
-    // shows a real end screen.
+    // nearest foe, never rewind) until the clock winds it down, so the shot
+    // still shows a real end screen.
     for (let i = 0; i < 120 / STEP; i += 1) {
       const p = world.state.player;
       let foe = null;
