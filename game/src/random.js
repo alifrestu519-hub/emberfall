@@ -1,30 +1,32 @@
-// A small seeded generator (mulberry32) so a seed always replays the same
-// arena: the same seed gives the same spawns, the same shots, the same game.
+// A small seeded random number generator (mulberry32): the same seed
+// always grows the same grove, so a run replays exactly and the
+// screenshot scenes are deterministic.
 export function createRandom(seed) {
-  let state = seed >>> 0;
-  function next() {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  }
+  let state = (seed >>> 0) || 0x9e3779b9;
   return {
-    next,
+    /** A float in [0, 1). */
+    next() {
+      state = (state + 0x6d2b79f5) >>> 0;
+      let t = state;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    },
     /** A float in [min, max). */
     range(min, max) {
-      return min + (max - min) * next();
+      return min + this.next() * (max - min);
     },
-    /** An integer in [min, max]. */
+    /** An integer in [min, max] inclusive. */
     int(min, max) {
-      return min + Math.floor(next() * (max - min + 1));
+      return min + Math.floor(this.next() * (max - min + 1));
     },
-    /** Pick one entry of `list`. */
-    pick(list) {
-      return list[Math.floor(next() * list.length)];
+    /** One element of an array, uniformly. */
+    pick(array) {
+      return array[Math.floor(this.next() * array.length)];
     },
-    /** A random angle in radians. */
-    angle() {
-      return next() * Math.PI * 2;
+    /** A fresh generator seeded from this one. */
+    fork() {
+      return createRandom((this.next() * 4294967296) >>> 0);
     },
   };
 }

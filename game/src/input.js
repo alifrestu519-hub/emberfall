@@ -1,39 +1,61 @@
 // Keyboard and mouse, read as one bitmask of actions per frame.
-// Movement is WASD or arrows; Space rewinds; P or Escape pauses; R restarts;
-// M mutes; 1/2/3 pick a level-up card; click fires a burst toward the mouse.
+// Clicks plant and pick; 1-6 choose a growth; Space starts the next wave
+// early; F fast-forwards; P or Escape pauses; R restarts; M mutes;
+// U upgrades the selected growth, X sells it; T returns to the title.
 export const ACTION_CONFIRM = 1;
 export const ACTION_PAUSE = 2;
 export const ACTION_RESTART = 4;
 export const ACTION_MUTE = 8;
-export const ACTION_REWIND = 16;
-export const ACTION_PICK_1 = 32;
-export const ACTION_PICK_2 = 64;
-export const ACTION_PICK_3 = 128;
-export const ACTION_REROLL = 256;
-export const ACTION_SAME_SEED = 512;
+export const ACTION_START_WAVE = 16;
+export const ACTION_SPEED = 32;
+export const ACTION_REROLL = 64;
+export const ACTION_SAME_SEED = 128;
+export const ACTION_UPGRADE = 256;
+export const ACTION_SELL = 512;
+export const ACTION_TITLE = 1024;
+export const ACTION_PICK_1 = 2048;
+export const ACTION_PICK_2 = 4096;
+export const ACTION_PICK_3 = 8192;
+export const ACTION_PICK_4 = 16384;
+export const ACTION_PICK_5 = 32768;
+export const ACTION_PICK_6 = 65536;
+export const ACTION_DESELECT = 131072;
+
+export const PICK_ACTIONS = [
+  ACTION_PICK_1, ACTION_PICK_2, ACTION_PICK_3,
+  ACTION_PICK_4, ACTION_PICK_5, ACTION_PICK_6,
+];
 
 const KEY_ACTIONS = {
-  Space: ACTION_CONFIRM,
   Enter: ACTION_CONFIRM,
   KeyP: ACTION_PAUSE,
   Escape: ACTION_PAUSE,
   KeyR: ACTION_RESTART,
   KeyM: ACTION_MUTE,
-  KeyF: ACTION_REROLL,
+  Space: ACTION_START_WAVE,
+  KeyF: ACTION_SPEED,
+  KeyG: ACTION_REROLL,
   KeyS: ACTION_SAME_SEED,
+  KeyU: ACTION_UPGRADE,
+  KeyX: ACTION_SELL,
+  KeyT: ACTION_TITLE,
   Digit1: ACTION_PICK_1,
   Digit2: ACTION_PICK_2,
   Digit3: ACTION_PICK_3,
+  Digit4: ACTION_PICK_4,
+  Digit5: ACTION_PICK_5,
+  Digit6: ACTION_PICK_6,
   Numpad1: ACTION_PICK_1,
   Numpad2: ACTION_PICK_2,
   Numpad3: ACTION_PICK_3,
+  Numpad4: ACTION_PICK_4,
+  Numpad5: ACTION_PICK_5,
+  Numpad6: ACTION_PICK_6,
 };
 
 export function createInput(canvas) {
-  const keys = new Set();
   let actions = 0;
-  let mouse = { x: 640, y: 360, down: false, clicked: false };
-  let mouseDown = false;
+  const mouse = { x: 640, y: 360, clicked: false, rightClicked: false };
 
   function toGame(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
@@ -46,13 +68,9 @@ export function createInput(canvas) {
   window.addEventListener('keydown', (event) => {
     if (event.code === 'Space') event.preventDefault();
     if (event.repeat) return;
-    keys.add(event.code);
     const action = KEY_ACTIONS[event.code];
     if (action) actions |= action;
-    if (event.code === 'Space') actions |= ACTION_REWIND;
   });
-  window.addEventListener('keyup', (event) => keys.delete(event.code));
-  window.addEventListener('blur', () => keys.clear());
   canvas.addEventListener('pointermove', (event) => {
     const p = toGame(event.clientX, event.clientY);
     mouse.x = p.x;
@@ -62,30 +80,14 @@ export function createInput(canvas) {
     const p = toGame(event.clientX, event.clientY);
     mouse.x = p.x;
     mouse.y = p.y;
-    mouseDown = true;
-    mouse.clicked = true;
-    actions |= ACTION_CONFIRM;
+    if (event.button === 2) mouse.rightClicked = true;
+    else mouse.clicked = true;
   });
-  window.addEventListener('pointerup', () => {
-    mouseDown = false;
-  });
+  canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
   return {
-    /** -1, 0 or 1 on each axis, from the keys held down. */
-    direction() {
-      let x = 0;
-      let y = 0;
-      if (keys.has('KeyA') || keys.has('ArrowLeft')) x -= 1;
-      if (keys.has('KeyD') || keys.has('ArrowRight')) x += 1;
-      if (keys.has('KeyW') || keys.has('ArrowUp')) y -= 1;
-      if (keys.has('KeyS') || keys.has('ArrowDown')) y += 1;
-      return { x, y };
-    },
     mouse() {
       return mouse;
-    },
-    mouseDown() {
-      return mouseDown;
     },
     /** Actions pressed since the last call; each press is reported once. */
     takeActions() {
@@ -97,6 +99,12 @@ export function createInput(canvas) {
     takeClick() {
       const clicked = mouse.clicked;
       mouse.clicked = false;
+      return clicked;
+    },
+    /** True only on the frame the right mouse button was clicked. */
+    takeRightClick() {
+      const clicked = mouse.rightClicked;
+      mouse.rightClicked = false;
       return clicked;
     },
   };

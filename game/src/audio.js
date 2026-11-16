@@ -5,13 +5,14 @@ export function createAudio() {
   let ctx = null;
   let master = null;
   let musicGain = null;
+  let windGain = null;
   let muted = false;
   let musicTimer = null;
   let musicStep = 0;
 
-  /** A clockwork waltz in three: brass bells over a ticking bass. */
-  const MELODY = [523, 0, 659, 784, 0, 659, 587, 0, 523, 440, 0, 587, 659, 0, 784, 0];
-  const BASS = [131, 0, 0, 165, 0, 0, 147, 0, 0, 131, 0, 0, 175, 0, 0, 0];
+  /** A slow forest round: wooden flute over a low root note. */
+  const MELODY = [392, 0, 440, 523, 0, 440, 392, 0, 330, 0, 392, 440, 0, 523, 587, 0];
+  const BASS = [98, 0, 0, 0, 110, 0, 0, 0, 98, 0, 0, 0, 131, 0, 0, 0];
 
   function ensure() {
     if (ctx) return true;
@@ -23,15 +24,18 @@ export function createAudio() {
       master.gain.value = muted ? 0 : 0.5;
       master.connect(ctx.destination);
       musicGain = ctx.createGain();
-      musicGain.gain.value = 0.12;
+      musicGain.gain.value = 0.1;
       musicGain.connect(master);
+      windGain = ctx.createGain();
+      windGain.gain.value = 0.0;
+      windGain.connect(master);
     } catch {
       return false;
     }
     return true;
   }
 
-  function tone(freq, dur, type, vol, when = 0, slideTo = 0) {
+  function tone(freq, dur, type, vol, when = 0, slideTo = 0, dest = null) {
     if (!ctx || muted) return;
     const t = ctx.currentTime + when;
     const osc = ctx.createOscillator();
@@ -42,14 +46,14 @@ export function createAudio() {
     gain.gain.setValueAtTime(vol, t);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     osc.connect(gain);
-    gain.connect(master);
+    gain.connect(dest ?? master);
     osc.start(t);
     osc.stop(t + dur + 0.02);
   }
 
-  function noise(dur, vol, freq) {
+  function noise(dur, vol, freq, when = 0) {
     if (!ctx || muted) return;
-    const t = ctx.currentTime;
+    const t = ctx.currentTime + when;
     const len = Math.max(1, Math.floor(ctx.sampleRate * dur));
     const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -69,21 +73,47 @@ export function createAudio() {
 
   function scheduleMusic() {
     if (!ctx || muted) return;
-    const beat = 0.34;
+    const beat = 0.42;
     const note = MELODY[musicStep % MELODY.length];
     const bass = BASS[musicStep % BASS.length];
-    if (note) tone(note, beat * 0.9, 'sine', 0.16);
-    if (bass) tone(bass, beat * 1.6, 'triangle', 0.2);
+    if (note) tone(note, beat * 1.1, 'sine', 0.16, 0, 0, musicGain);
+    if (bass) tone(bass, beat * 2.2, 'triangle', 0.2, 0, 0, musicGain);
     musicStep += 1;
     musicTimer = window.setTimeout(scheduleMusic, beat * 1000);
   }
 
+  function startWind() {
+    if (!ctx || !windGain) return;
+    const len = ctx.sampleRate * 2;
+    const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i += 1) {
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.02 * white) / 1.02;
+      data[i] = last * 3;
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 320;
+    source.connect(filter);
+    filter.connect(windGain);
+    source.start();
+    windGain.gain.setTargetAtTime(0.05, ctx.currentTime, 2);
+  }
+
   return {
-    /** Call from any user gesture: unlocks sound and starts the theme. */
+    /** Call from any user gesture: unlocks sound, wind and the theme. */
     unlock() {
       if (!ensure()) return;
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-      if (!musicTimer) scheduleMusic();
+      if (!musicTimer) {
+        scheduleMusic();
+        startWind();
+      }
     },
     toggleMute() {
       muted = !muted;
@@ -99,72 +129,61 @@ export function createAudio() {
     isMuted() {
       return muted;
     },
+    /** A seed pressed into soil: a soft wooden thock. */
+    plant() {
+      tone(190, 0.12, 'triangle', 0.22, 0, 90);
+      noise(0.06, 0.1, 900);
+    },
     shoot() {
-      tone(880, 0.08, 'square', 0.08, 0, 440);
+      tone(740, 0.05, 'square', 0.045, 0, 380);
     },
-    burst() {
-      tone(520, 0.12, 'square', 0.14, 0, 180);
-      noise(0.08, 0.1, 2400);
-    },
-    hit() {
-      tone(240, 0.06, 'triangle', 0.12, 0, 140);
+    spray() {
+      noise(0.12, 0.05, 1400);
     },
     kill() {
-      tone(520, 0.14, 'sawtooth', 0.1, 0, 90);
-      noise(0.12, 0.12, 1200);
+      tone(420, 0.12, 'sine', 0.12, 0, 120);
+      noise(0.08, 0.08, 1000);
     },
-    hurt() {
-      tone(180, 0.28, 'sawtooth', 0.2, 0, 55);
+    explosion() {
+      noise(0.3, 0.25, 500);
+      tone(110, 0.3, 'sine', 0.2, 0, 40);
     },
-    pickup() {
-      tone(980, 0.07, 'sine', 0.12);
-      tone(1318, 0.09, 'sine', 0.1, 0.05);
+    treeHurt() {
+      tone(140, 0.3, 'sawtooth', 0.2, 0, 50);
+      noise(0.12, 0.12, 700);
     },
-    levelUp() {
-      [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.14, i * 0.07));
+    towerLost() {
+      tone(300, 0.25, 'triangle', 0.14, 0, 90);
     },
-    rewind() {
-      // Time running backwards: a falling chime.
-      tone(1047, 0.25, 'sine', 0.14, 0, 262);
-      tone(784, 0.2, 'sine', 0.1, 0.05, 392);
+    coin() {
+      tone(1180, 0.07, 'sine', 0.09);
+      tone(1568, 0.09, 'sine', 0.07, 0.05);
     },
-    echo() {
-      tone(1319, 0.3, 'sine', 0.12);
-      tone(1760, 0.4, 'sine', 0.08, 0.12);
+    waveHorn() {
+      tone(196, 0.5, 'triangle', 0.2, 0, 196);
+      tone(294, 0.5, 'triangle', 0.16, 0.12, 294);
     },
-    timestop() {
-      tone(1568, 0.5, 'sine', 0.14, 0, 1568);
-      tone(2093, 0.5, 'sine', 0.1, 0.08, 2093);
+    waveClear() {
+      [523, 659, 784].forEach((f, i) => tone(f, 0.2, 'triangle', 0.12, i * 0.08));
     },
-    wave() {
-      tone(392, 0.16, 'triangle', 0.14);
-      tone(587, 0.24, 'triangle', 0.14, 0.12);
+    draftChime() {
+      [784, 1047, 1319].forEach((f, i) => tone(f, 0.3, 'sine', 0.12, i * 0.09));
     },
-    boss() {
-      tone(98, 0.7, 'sawtooth', 0.22, 0, 49);
-      tone(147, 0.5, 'sawtooth', 0.14, 0.1, 73);
+    bossRoar() {
+      tone(82, 0.9, 'sawtooth', 0.24, 0, 41);
+      tone(123, 0.7, 'sawtooth', 0.16, 0.1, 62);
     },
-    seize() {
-      tone(1175, 0.18, 'sine', 0.12, 0, 880);
-      tone(880, 0.12, 'sine', 0.08, 0.06);
+    upgrade() {
+      [659, 880, 1175].forEach((f, i) => tone(f, 0.16, 'triangle', 0.12, i * 0.06));
     },
-    break() {
-      noise(0.14, 0.16, 5200);
-      tone(1318, 0.1, 'triangle', 0.1, 0, 880);
-    },
-    chime() {
-      // The Great Chime: twelve slow bell strikes in miniature.
-      [784, 784, 784].forEach((f, i) => tone(f, 0.5, 'sine', 0.12, i * 0.3));
-    },
-    chimeWarn() {
-      tone(660, 0.3, 'sine', 0.12, 0, 440);
-      tone(660, 0.3, 'sine', 0.12, 0.35, 440);
+    denied() {
+      tone(160, 0.14, 'square', 0.1, 0, 110);
     },
     victory() {
-      [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.3, 'triangle', 0.15, i * 0.11));
+      [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone(f, 0.32, 'triangle', 0.15, i * 0.12));
     },
     defeat() {
-      [392, 330, 262, 196].forEach((f, i) => tone(f, 0.4, 'sawtooth', 0.12, i * 0.16));
+      [330, 294, 262, 196].forEach((f, i) => tone(f, 0.45, 'sawtooth', 0.11, i * 0.18));
     },
   };
 }
